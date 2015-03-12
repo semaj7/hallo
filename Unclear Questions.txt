@@ -1,0 +1,9 @@
+Questions:
+
+- What is the key of a group? (What is the identifier of a group)
+- Are friends (blocked people, followed people) symmetric/reflexiv? (Does a user have to accept a friend (follow) request?)
+
+- What is the difference between include ("User can include personal details in their profile") and links ("A post may have links to photos")
+  Is include a copy of the content and a link a reference?
+
+- Can a group send a message, follow other groups or block other users?
