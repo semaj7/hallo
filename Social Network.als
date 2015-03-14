@@ -23,8 +23,13 @@ fact eMail_are_connected{EMail in PersonalProfile.eMail}
 fact no_reflexiv_friends{all p:Profile | not p in p.friends} 
 fact no_reflexiv_followers{all p:Profile | not p in p.following}
 
-sig GroupProfile extends Profile {}
-//fact: every group has at least one admin
+sig GroupProfile extends Profile {
+//numberOfMembers = #(all m:Member | m.memberOf = this)
+}
+
+//fact one_admin_per_group{all g:GroupProfile,m:Member | m.memberOf=g => one m.isAdmin} //doesnt work xP
+
+//fact: every group has at least one admin 
 //can a member be member and follow a group?
 
 sig Member {
@@ -33,6 +38,13 @@ sig Member {
 }
 fact unique_members{all disjoint p,q:PersonalProfile, m:Member | m in p.isMember => not m in q.isMember}
 fact members_are_connected{Member in PersonalProfile.isMember}
+
+fact only_once_member_of_a_group{
+all p:PersonalProfile, disjoint m,n:Member, g:GroupProfile | (g=m.memberOf && m in p.isMember) => not (g=n.memberOf && n in p.isMember)}
+
+--fact atLeast_one_admin_per_group
+
+
 
 sig Content{
 	visible: Bool
@@ -64,8 +76,8 @@ sig personalDetails extends PersonalContent{}
 pred show() {
 	all p:PersonalProfile | #p.following >= 1
 	all p:PersonalProfile | #p.friends >= 1
-	all p:PersonalProfile | #p.posted >= 2
-	some p:PersonalProfile | #p.isMember >= 2
+//	all p:PersonalProfile | #p.posted >= 2
+	some p:PersonalProfile | #p.isMember >= 4
 
 //	#Photo >=5
 	#PersonalProfile >= 2
@@ -73,4 +85,5 @@ pred show() {
 
 }
 
-run show for 7 but 2 Member
+run show for 7 but 4 Member
+	
