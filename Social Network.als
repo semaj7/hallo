@@ -5,7 +5,8 @@ abstract sig Profile{
 }
 
 
--- PERSON -------------------------------------------
+-- PERSON -----------------------------------------------
+---------------------------------------------------------
 //Pascal: should a user not  be able to block other users? (then we also have to add that blocking is not reflexive)
 
 sig PersonalProfile extends Profile{
@@ -15,6 +16,7 @@ sig PersonalProfile extends Profile{
 	posted: set Content,
 	isMember: set Member,
 	canSee: set Content
+//do we need a field set "newsfeed"?
 }
 fact symmetric_friends{all disjoint p,q:PersonalProfile | p in q.friends => q in p.friends}
 
@@ -30,7 +32,12 @@ fact no_reflexiv_friends{all p:Profile | not p in p.friends}
 fact no_reflexiv_followers{all p:Profile | not p in p.following}
 
 
+
+
+
+
 -- GROUP ----------------------------------------------
+-------------------------------------------------------
 
 --what can a group post? Pascal: a group posts nothing, members can post to a group ;)
 sig GroupProfile extends Profile {
@@ -40,14 +47,15 @@ fact groupcontent_is_public/privat{all g:GroupProfile,c:CommentableContent |
 						c in g.posted => (c.visible = Public || c.visible = Private)}
  
 --== is this true?
-//Pascal: what exactly? that every group has at least one admin?
+//Pascal: what exactly?
 fact one_admin_per_group{some m:Member, g:GroupProfile | m.memberOf=g => isTrue[m.isAdmin]}
 
 //can a member be member and follow a group?
-//Pascal: i think the cant. "Users who are not members of a group can still follow the group"
+//Pascal: i think he cant. "Users who are not members of a group can still follow the group"
+
 sig Member {
 	isAdmin:Bool,
-	memberOf: one GroupProfile
+	memberOf: one GroupProfile //Pascal: why "one"? "one" is default ;)
 }
 fact unique_members{all disjoint p,q:PersonalProfile, m:Member | m in p.isMember => not m in q.isMember}
 fact members_are_connected{Member in PersonalProfile.isMember}
@@ -59,9 +67,13 @@ fact only_once_member_of_a_group{
 --fact atLeast_one_admin_per_group
 
 
--- CONTENT ----------------------------------------------
 
-sig Content{ //why not abstract??
+
+
+-- CONTENT ----------------------------------------------
+---------------------------------------------------------
+
+sig Content{ //Pascal: why not abstract?
 	visible: Visible
 }
 fact unique_personalPosts{all disjoint p,q:PersonalProfile, c:Content | c in p.posted => not c in q.posted}
@@ -77,15 +89,19 @@ sig Photo extends CommentableContent{}
 sig Post extends CommentableContent{
 	post: String,
 	link: set Photo
+//Pascal: can't a post also have a link to other posts?
 }
 sig Comment extends CommentableContent{
 	comment: String,
 	refersTo: set CommentableContent
+//Pascal: can a comment refer to multiple or no Content? i would rather say it can refer to only one content...
 }
 
 sig PersonalMessage extends PersonalContent{
 	message: String,
 	includedPhoto: lone Photo 	
+//Pascal: a personal message can include multiple photos...
+//Pascal: don't we need a field for the receiver of the message?
 }
 sig PersonalDetails extends PersonalContent{
 	details:String
