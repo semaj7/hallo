@@ -16,7 +16,7 @@ sig PersonalProfile extends Profile{
 	posted: set Content,
 	isMember: set Member,
 	canSee: set Content
-//Pascal: do we need a field set "newsfeed"?
+//Pascal: do we need a field set "newsfeed"? -> NO (just read Task C)
 //Pascal: we need a field for blocked users
 }
 fact symmetric_friends{all disjoint p,q:PersonalProfile | p in q.friends => q in p.friends}
@@ -48,8 +48,9 @@ fact groupcontent_is_public/privat{all g:GroupProfile,c:CommentableContent |
 						c in g.posted => (c.visible = Public || c.visible = Private)}
  
 --== is this true?
-//Pascal: what exactly?
+//Pascal: what exactly? -> ahaaa, you mean "atLeast_one_admin_per_group"... yes i think a group need at least one admin
 fact one_admin_per_group{some m:Member, g:GroupProfile | m.memberOf=g => isTrue[m.isAdmin]}
+//Pascal: I think this won't work, it only says that ther is some group with a admin, and not that every group has an admin
 
 //can a member be member and follow a group?
 //Pascal: i think he cant. "Users who are not members of a group can still follow the group"
@@ -79,6 +80,7 @@ sig Content{ //Pascal: why not abstract?
 	visible: Visible
 }
 //Pascal: solution of the other group (Andres, Panuya, Fabian): they have a field created_by, and owned_by in every content, but our solution should be fine too.
+//Pascal: do we need to keep track of the initial creator of a content? 
 
 fact unique_personalPosts{all disjoint p,q:PersonalProfile, c:Content | c in p.posted => not c in q.posted}
 fact unique_groupPosts{all disjoint p,q:GroupProfile, c:Content | c in p.posted => not c in q.posted}
