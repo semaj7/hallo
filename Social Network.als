@@ -18,7 +18,7 @@ sig PersonalProfile extends Profile{
 	following:set Profile,
 	blocked: set PersonalProfile,
 	posted: set Content,
-	isMember: set Member,
+	isMember: set Member, //Jimmy: i'd prefer a other solution with groups:  isMemberOf: set GroupProfile
 	canSee: set Content
 }
 fact symmetric_friends{all disjoint p,q:PersonalProfile | p in q.friends => q in p.friends}
@@ -38,15 +38,19 @@ fact eMail_are_connected{EMail in PersonalProfile.eMail}
 
 sig GroupProfile extends Profile {
 	posted: set CommentableContent
+	// Jimmy: maybe: members: set PersonalProfile
+	
 }
  
 --== is this true?
 
 //fact atLeast_one_admin_per_group{all g:GroupProfile,  m:Member | m.memberOf=g && isTrue[m.isAdmin]}
 //Pascal: I think this won't work, it only says that ther is some group with a admin, and not that every group has an admin
+//Jimmy: "Some of the group members are designated as the group’s administrators."  therefore every group has at least one admin.
 
 //can a member be member and follow a group?
 //Pascal: i think he cant. "Users who are not members of a group can still follow the group"
+//Jimmy: but there is no connection declared between being member of the group and the newsfeed. to me, this sounds as if a members can decide to let the content be displayed in the newsfeed by following their group.
 fact cant_be_member_and_follow{all p:PersonalProfile, m:Member, g:GroupProfile | (m in p.isMember && g=m.memberOf) => (not g in p.following)}
 
 sig Member {
@@ -63,6 +67,7 @@ fact only_once_member_of_a_group{
 
 
 //Pascal: solution of the other group (Andres, Panuya, Fabian): a signature admin_group, with a set of persons.
+//Jimmy : I think the solution we have is quite elegant, since people can easily find the groups they are member of, and if they are the admin of it or not.
 
 
 
@@ -82,6 +87,7 @@ fact {all p:PersonalProfile | {all c:p.posted | c.createdby = p}}
 
 //Pascal: solution of the other group (Andres, Panuya, Fabian): they have a field created_by, and owned_by in every content, but our solution should be fine too.
 //Pascal: do we need to keep track of the initial creator of a content? 
+//Jimmy: It's not declared, but if we someday want to implement a 'delete content' function, we'd need to keep track of the creator. So, i would.
 
 fact unique_personalPosts{all disjoint p,q:PersonalProfile, c:Content | c in p.posted => not c in q.posted}
 fact unique_groupPosts{all disjoint p,q:GroupProfile, c:Content | c in p.posted => not c in q.posted}
@@ -94,11 +100,13 @@ abstract sig PersonalContent extends Content{}
 
 sig Photo extends CommentableContent{}
 sig Post extends CommentableContent{
-	post: Text,
+	//Jimmy: should Text be declared 'lone' ?
+	post: Text, 
 	link: set Photo
 }
 sig Comment extends CommentableContent{
-	comment: Text,
+	//Jimmy : 'lone'?
+	comment: Text, 
 	refersTo: one CommentableContent
 }
 //Pascal: what's the visibility of comments? (i will ask the TA) -- if post is friends cann comment be public?
