@@ -1,59 +1,53 @@
 open util/boolean
 
 abstract sig Profile{
-	name:Name
+	name:Name,
+//	posted:set Content
 }
+
+sig Name{}
+fact unique_names{all disjoint p,q:Profile | p.name != q.name}
 
 
 -- PERSON -----------------------------------------------
 ---------------------------------------------------------
-//Pascal: should a user not  be able to block other users? (then we also have to add that blocking is not reflexive)
 
 sig PersonalProfile extends Profile{
 	eMail:one EMail,
 	friends:set PersonalProfile,
 	following:set Profile,
+	blocked: set PersonalProfile,
 	posted: set Content,
 	isMember: set Member,
 	canSee: set Content
-//Pascal: do we need a field set "newsfeed"? -> NO (just read Task C)
-//Pascal: we need a field for blocked users
 }
 fact symmetric_friends{all disjoint p,q:PersonalProfile | p in q.friends => q in p.friends}
+fact no_reflexiv_friends{all p:Profile | not p in p.friends}
+fact no_reflexiv_followers{all p:Profile | not p in p.following}
+fact no_reflexiv_blocked{all p:Profile | not p in p.blocked}
 
-sig Name{} 																				//Pascal: I would place this sig after "profile"
-fact unique_names{all disjoint p,q:Profile | p.name != q.name} 	//Pascal: I would place this fact directly after "Profile"?
-//fact names_are_connected{Name in Profile.name}   				    //Pascal: 1. do you think we need this fact? 2. from where do you get this term "connected"? (is this commonly used terminology?)
+fact unique_Emails{all disjoint p,q:PersonalProfile | p.eMail != q.eMail}
+fact names_are_connected{Name in Profile.name}  
 
 sig EMail{}
-fact unique_Emails{all disjoint p,q:PersonalProfile | p.eMail != q.eMail} //Pascal: should this fact not be beneath "PersonalProfile"?
 fact eMail_are_connected{EMail in PersonalProfile.eMail}
-
-fact no_reflexiv_friends{all p:Profile | not p in p.friends} 
-fact no_reflexiv_followers{all p:Profile | not p in p.following}
-
-
-
-
 
 
 -- GROUP ----------------------------------------------
 -------------------------------------------------------
 
---what can a group post? Pascal: a group posts nothing, members can post to a group ;)
 sig GroupProfile extends Profile {
-	posted: CommentableContent
+	posted: set CommentableContent
 }
-fact groupcontent_is_public/privat{all g:GroupProfile,c:CommentableContent |
-						c in g.posted => (c.visible = Public || c.visible = Private)}
  
 --== is this true?
-//Pascal: what exactly? -> ahaaa, you mean "atLeast_one_admin_per_group"... yes i think a group need at least one admin
-fact one_admin_per_group{some m:Member, g:GroupProfile | m.memberOf=g => isTrue[m.isAdmin]}
+
+//fact atLeast_one_admin_per_group{all g:GroupProfile,  m:Member | m.memberOf=g && isTrue[m.isAdmin]}
 //Pascal: I think this won't work, it only says that ther is some group with a admin, and not that every group has an admin
 
 //can a member be member and follow a group?
 //Pascal: i think he cant. "Users who are not members of a group can still follow the group"
+fact cant_be_member_and_follow{all p:PersonalProfile, m:Member, g:GroupProfile | (m in p.isMember && g=m.memberOf) => (not g in p.following)}
 
 sig Member {
 	isAdmin:Bool,
@@ -66,7 +60,6 @@ fact only_once_member_of_a_group{
 	all p:PersonalProfile, disjoint m,n:Member, g:GroupProfile | (g=m.memberOf && m in p.isMember) => not (g=n.memberOf && n in p.isMember)
 }
 
---fact atLeast_one_admin_per_group
 
 
 //Pascal: solution of the other group (Andres, Panuya, Fabian): a signature admin_group, with a set of persons.
@@ -76,17 +69,23 @@ fact only_once_member_of_a_group{
 -- CONTENT ----------------------------------------------
 ---------------------------------------------------------
 
-sig Content{ //Pascal: why not abstract?
-	visible: Visible
+abstract sig Content{
+	visible: Visible,
+	createdby: PersonalProfile
 }
+fact groupcontent_is_public/privat{all g:GroupProfile,c:CommentableContent |
+						c in g.posted => (c.visible = Public || c.visible = Private)}
+
+fact {all p:PersonalProfile | {all c:p.posted | c.createdby = p}}
+//fact {all g:GroupProfile, p:PersonalProfile | g.posted.createdby = p
+//fact member_of_group_you_post_in
+
 //Pascal: solution of the other group (Andres, Panuya, Fabian): they have a field created_by, and owned_by in every content, but our solution should be fine too.
 //Pascal: do we need to keep track of the initial creator of a content? 
 
 fact unique_personalPosts{all disjoint p,q:PersonalProfile, c:Content | c in p.posted => not c in q.posted}
 fact unique_groupPosts{all disjoint p,q:GroupProfile, c:Content | c in p.posted => not c in q.posted}
-//fact unique_posts{all p:PersonalProfile, q:GroupProfile, c:Content | c in p.posted => not c in q.posted}  
-
-//Pascal: We could sove this more generally with "all disjoint p,q:Profile, c:Content | c in p.posted => not c in q.posted}"
+fact unique_posts{all p:PersonalProfile, q:GroupProfile, c:Content | c in p.posted => not c in q.posted}  
 
 fact post_are_connected{Content in PersonalProfile.posted}
 
@@ -95,29 +94,30 @@ abstract sig PersonalContent extends Content{}
 
 sig Photo extends CommentableContent{}
 sig Post extends CommentableContent{
-	post: String,
+	post: Text,
 	link: set Photo
-//Pascal: can't a post also have a link to other posts?
 }
 sig Comment extends CommentableContent{
-	comment: String,
-	refersTo: set CommentableContent
-//Pascal: can a comment refer to multiple or no Content? i would rather say it can refer to only one content...
+	comment: Text,
+	refersTo: one CommentableContent
 }
-//Pascal: what's the visibility of comments? (i will ask the TA)
+//Pascal: what's the visibility of comments? (i will ask the TA) -- if post is friends cann comment be public?
 //Pascal: i think we need an additional fact to make sure that the one who posts a comment actually sees the content to which the comment refers.
-//Pascal: we need to make sure that we don't get cyclic comment-chains
+fact sees_commentableContent{all p:PersonalProfile, c:Comment | c in p.posted && c.refersTo in p.canSee}
+fact same_visibleType{all c:Comment | c.visible = c.refersTo.visible}
+fact no_refl_refersTo{all c:Comment | c != c.refersTo}
+
+fact no_cyclic_comments{all c:Comment | not c in (c.*refersTo)}
 
 sig PersonalMessage extends PersonalContent{
-	message: String,
-	includedPhoto: lone Photo 	
-//Pascal: a personal message can include multiple photos...
-//Pascal: don't we need a field for the receiver of the message?
+	message: Text,
+	includedPhoto: set Photo,
+	sendTo: PersonalProfile
 }
 sig PersonalDetails extends PersonalContent{
-	details:String
+	details:Text
 }
-
+sig Text{}
 
 -- OTHER STUFF -------------------------------------------
 ---------------------------------------------------------
@@ -149,15 +149,15 @@ fact canSee{all disjoint p:PersonalProfile,c:Content |
 -- TASK C ------------------------------------------------
 ---------------------------------------------------------
 
-pred canSee [p: personal_profile, c: content] { 
+pred canSee [p:PersonalProfile, c: Content] { 
 	
 }
 
-pred canModify[p:personal_profile, c:content] {
+pred canModify[p:PersonalProfile, c: Content] {
 
 }
 
-pred isOnNewsFeed [p:personal_profile, c:content] {
+pred isOnNewsFeed [p:PersonalProfile, c: Content] {
 
 }
 
@@ -166,9 +166,9 @@ pred isOnNewsFeed [p:personal_profile, c:content] {
 
 //Invariante 1
 //Comment chains are acyclic
-assert inv1{
+/*assert inv1{
 	all c:comment | c not in c.^attached_to
-}
+}*/
 
 
 //Invariante 2
@@ -215,16 +215,19 @@ assert inv7 {
 ---------------------------------------------------------
 
 pred show() {
-	all p:PersonalProfile | #p.following >= 1
-	all p:PersonalProfile | #p.friends >= 1
-	all p:PersonalProfile | #p.posted >= 2
-	some p:PersonalProfile | #p.isMember >= 2
+//	all p:PersonalProfile | #p.following >= 1
+//	all p:PersonalProfile | #p.friends >= 1
+//	some p:PersonalProfile | #p.posted >= 2
+//	some p:PersonalProfile | #p.isMember >= 2
+//	#Post >=1
+	#Comment >=4
+//	# PersonalMessage >=4
 
 //	#Photo >=5
 //	#PersonalProfile >= 2
 //	#GroupProfile
 
 }
-
-run show for 4 //but 4 Member
+pred show2(){}
+run show for 5// but 4 Comment
 	
